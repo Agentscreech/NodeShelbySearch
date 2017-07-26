@@ -1,0 +1,36 @@
+{
+  "name": "ShelbySearch",
+  "version": "1.0.0",
+  "description": "Search Autotrader for details of Ford's Shelby line of Mustangs.",
+  "main": "index.js",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "body-parser": "^1.17.1",
+    "cheerio": "^0.22.0",
+    "dotenv": "^4.0.0",
+    "express": "^4.15.2",
+    "mongoose": "^4.9.4",
+    "node-schedule": "^1.2.3",
+    "nodemailer": "^4.0.1",
+    "pg": "^6.1.5",
+    "pg-hstore": "^2.3.2",
+    "request": "^2.81.0",
+    "request-promise": "^4.2.1",
+    "sequelize": "^3.30.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Agentscreech/ShelbySearch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Agentscreech/ShelbySearch/issues"
+  },
+  "homepage": "https://github.com/Agentscreech/ShelbySearch#readme"
+}
