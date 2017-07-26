@@ -1,31 +1,29 @@
 <div class="container">
     <h1>Welcome to Shelby Search.  Scrape AutoTrader for Shelby GT350 and GT350R listings</h1>
 
-    <!-- <button class="btn btn-danger" ng-if="homeComp.updaterStatus" ng-click="homeComp.update()">STOP AUTO-UPDATE</button>
-    <button class="btn btn-success" ng-if="!homeComp.updaterStatus" ng-click="homeComp.update()">START AUTO-UPDATE</button> -->
-
-    <form ng-submit="searchCars()" class="well">
+    <form ng-submit="homeComp.searchCars()" class="well">
         <div class="row">
             <div class="col-xs-6">
                 <label for="zipcode">Zip Code
-                <input type="number" class="form-control" required ng-model="search.zipcode">
+                <input type="number" class="form-control" required ng-model="homeComp.zipcode">
             </label>
                 <label for="radius">Maximum Distance
-                <input type="number" class="form-control" required ng-model="search.radius">
+                <input type="number" class="form-control" required ng-model="homeComp.radius">
             </label>
                 <label for="minYear">Minimum Year
-                <select ng-model="serach.minYear" ng-options="x for x in homeComp.years" class= "form-control" required></select>
+                <select ng-model="homeComp.minYear" ng-options="x for x in homeComp.years" class= "form-control" required></select>
             </label>
                 <label for="maxYear">Maximum Year
-                <select ng-model="serach.maxYear" ng-options="x for x in homeComp.years" class="form-control" required></select>
+                <select ng-model="homeComp.maxYear" ng-options="x for x in homeComp.years" class="form-control" required></select>
             </label>
+            <p>Trim level</p>
                 <label class="form-control" ng-repeat="trim in homeComp.trims">
-                <input  type="checkbox" ng-model="search.trims[trim]" /> {{trim}}
+                <input  type="checkbox" ng-model="homeComp.trim[trim]" /> {{trim}}
             </label>
             </div>
             <div class="col-xs-6">
                 <label class="form-control" ng-repeat="color in homeComp.colors">
-                <input  type="checkbox" ng-model="search.colors[color]" /> {{color}}
+                <input  type="checkbox" ng-model="homeComp.color[color]" /> {{color}}
             </label>
 
             </div>
@@ -34,14 +32,13 @@
     </form>
 
     <div ng-repeat="car in homeComp.cars">
-        <div ng-if="car.archived == false">
+        <div ng-if="car">
             <div class="row well">
 
                 <div class="col-xs-6" id="{{car.id}}">
                     <img ng-src="{{car.pic}}">
                 </div>
                 <div class="col-xs-6">
-                    <!-- <button class="btn btn-danger" ng-click="homeComp.archive(car.id)">archive</button> -->
                     <button class="btn btn-primary pull-right"><a href="{{car.url}}" target="_blank"></a>View Listing</button>
                     <p>{{car.dist}}</p>
                     <p>Color: {{car.color}}</p>

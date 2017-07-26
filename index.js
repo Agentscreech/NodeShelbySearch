@@ -10,18 +10,53 @@ var request = require('request-promise');
 
 // var updaterInterval;
 
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
-    extended: false
+    extended: true
 }));
 
 app.use(express.static(path.join(__dirname + '/static/')));
 
-app.get('/api/search', function(req, res) {
+app.post('/api/search', function(req, res) {
+    console.log("request received with", req.body);
     //need to grab the parameters from the search and build a query
     //pass that query to the function to set that as the url
+    var options = req.body;
+    options.color = [];
+    options.trim = [];
+    //change each color to array index
+    for (color in options.colors){
+        options.color.push(color.toString());
+    }
+    if (options.color.length > 1){
+        //replace the array with the properly formatted query string
+        temp = options.color[0].toUpperCase();
+        for (var i = 1; i < options.color.length; i++){
+            temp += "%2C";
+            temp += options.color[i].toUpperCase();
+        }
+        options.color = temp;
 
-    .then(function(cars) {
-        res.send({cars: cars,updaterStatus: Boolean(updaterInterval)});
+    } else {
+        options.color = options.color[0].toUpperCase();
+    }
+    // change trims to an array, then replace it with the proper format for query
+    for (trim in options.trims){
+        options.trim.push(trim)
+    }
+    temp = "MUST%7C"
+    if (options.trim.length > 1){
+        temp += options.trim[0].split(" ").join("%20");
+        temp += "%2CMUST%7C"
+        temp += options.trim[1].split(" ").join("%20");
+    } else {
+        temp += options.trim[0].split(" ").join("%20");
+    }
+    options.trim = temp;
+    console.log(options)
+    findCars(options).then(function(cars) {
+        console.log("find cars is done, sending ", cars);
+        res.send({cars: cars});
     });
 });
 
@@ -56,8 +91,8 @@ app.get('/api/search', function(req, res) {
 app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'static/index.html'));
 });
-var server = app.listen((process.env.PORT || 1337), function() {
-    console.log('listening on 1337');
+var server = app.listen((process.env.PORT || 1350), function() {
+    console.log('listening on 1350');
 });
 
 
@@ -65,16 +100,16 @@ var server = app.listen((process.env.PORT || 1337), function() {
 
 //helper functions
 
-function updateList() {
+function findCars(params) {
     return new Promise(function(resolve, reject){
         var OPTIONS = {
-            url: 'http://www.autotrader.com/cars-for-sale/2017/Ford/Mustang/Lynnwood+WA-98036?zip=98036&extColorsSimple=BLUE&startYear=2017&numRecords=100&incremental=all&endYear=2017&modelCodeList=MUST&makeCodeList=FORD&sortBy=distanceASC&firstRecord=0&searchRadius=1200&trimCodeList=MUST%7CShelby%20GT350',
+            url: "http://www.autotrader.com/cars-for-sale//Ford/Mustang/?zip="+params.zipcode+"&extColorsSimple="+params.color+"&startYear="+params.minYear+"&numRecords=100&endYear="+params.maxYear+"&modelCodeList=MUST&makeCodeList=FORD&sortBy=distanceASC&firstRecord=0&searchRadius="+params.radius+"&trimCodeList="+params.trim,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
             }
 
         };
-        var newCarsListed = [];
+        var carsListed = [];
         var url = ""
         var distance = ""
         //grab the search results and then send each listed URL to the function that grabs the data we want.
@@ -94,31 +129,15 @@ function updateList() {
             console.log("parsed ", carsScraped.length, " cars")
             return carsScraped;
         }).then(function(cars){
-            var counter = 0;
             cars.forEach(function(singleCar){
                 url = singleCar[0];
                 distance = singleCar[1];
                 getCarDetails(OPTIONS, url, distance).then(function(carDetails){
-                    updateDB(carDetails).then(function(carUpdated){
-                        if(carUpdated){
-                            newCarsListed.push(carUpdated);
-                        }
-                        counter++;
-                        if (counter == cars.length){
-                            console.log("everything is updated at,", timeStamp()," checking is newCarsListed has anything");
-                            if (newCarsListed.length > 0) {
-                                //send email with new cars
-                                console.log("new car(s) found, should send email with ", newCarsListed);
-                                // send_simple_message();
-                                sendEmail(newCarsListed);
-                            } else {
-                                console.log("no new cars to email");
-                            }
-                            deleteExpiredListings();
-                            resolve();
-                        }
-                    })
-                })
+                    carsListed.push(carDetails)
+                    console.log("getDetails should be done and we have details", carsListed);
+                    // resolve();
+
+                }).then(resolve())
             })
         }).catch(function(error){
             console.log("something went wrong", error.message);
@@ -127,6 +146,11 @@ function updateList() {
     })
 }
 
+function parseCars(cars){
+    return new Promise(function(resolve,reject){
+
+    })
+}
 
 function getCarDetails(OPTIONS, url, dist) {
     return new Promise(function(resolve,reject){
@@ -154,122 +178,7 @@ function getCarDetails(OPTIONS, url, dist) {
     });
 }
 
-function updateDB(car) {
-    return new Promise(function(resolve, reject){
-        db.car.find({
-            where: {
-                vin: car.vin
-            }
-        }).then(function(result) {
-            if (!result) {
-                console.log("adding new car", car);
-                db.car.create({
-                    name: car.name,
-                    vin: car.vin,
-                    url: car.url,
-                    color: car.color,
-                    price: car.price,
-                    dealer: car.dealer,
-                    address: car.address,
-                    phone: car.phone,
-                    pic: car.pic,
-                    dist: car.dist
-                });
-                resolve(car)
-            } else {
-                //update the listing
-                if (car.price != result.price && !car.archived) {
-                    console.log("updating price");
-                    db.car.update({
-                        price: car.price
-                    }, {
-                        where: {
-                            vin: car.vin,
-                        }
-                    });
-                    };
-                resolve();
-            }
 
-        });
-    });
-}
-
-function deleteExpiredListings() {
-    db.car.findAll().then(function(cars) {
-        cars.forEach(function(car) {
-            var url = car.dataValues.url;
-            var options = {
-                url: url,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
-                }
-            }
-            request(options).then(function(body) {
-                if (body) {
-                    var $ = cheerio.load(body);
-                    if (!$('[data-qaid="cntnr-vehicle-title-header"] [title]').text()) {
-                        console.log('removing url', car.url);
-                        db.car.destroy({
-                            where: {
-                                url: car.url
-                            }
-                        })
-                    }
-                } else {
-                    console.log("delete check didn't return anything valid");
-                }
-            }).catch(function(err){
-                console.log(err.body, "happend",'removing url', car.url);
-                db.car.destroy({
-                    where: {
-                        url: car.url
-                    }
-                })
-            })
-        })
-    });
-}
-
-
-//email setup
-
-function send_simple_message(){
-    return requests.post(
-        "https://api.mailgun.net/v3/sandbox997eaaf4769941fc91309819e6e40bf3.mailgun.org",
-        auth=("api", process.env.EMAIL_API),
-        data={"from": "The Bot <you@carscraper.com>",
-        "to": ["Me", "exoticimage@hotmail.com"],
-        "subject": "New Car found",
-        "text": "Check the site"})
-}
-
-function sendEmail(cars) {
-    console.log("here are what the emailer was passed", cars);
-    var transporter = nodemailer.createTransport({
-        service: 'Mailgun',
-        auth: {
-            user: process.env.emailName,
-            pass: process.env.emailPassword
-        }
-    });
-
-    var mailOptions = {
-        from: 'yourServer@Carscraper.com',
-        to: 'exoticimage@hotmail.com',
-        subject: cars.length + ' New car(s) found!',
-        text: "At least one new car found.  "+cars[0].dealer+" has one.  They are "+cars[0].dist+" and it's "+cars[0].color+".  They want "+cars[0].price+" for it.  Check your site for more details and verify if VIN: "+cars[0].vin+" has the right options."
-    };
-
-    var emailStatus = transporter.sendMail(mailOptions, function(error, info) {
-        if (error) {
-            return console.log(error);
-        } else {
-            return console.log('Email sent: ' + info.response);
-        }
-    });
-    return emailStatus;
-}
 
 
 function timeStamp() {

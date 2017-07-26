@@ -1,13 +1,9 @@
 angular.module('App')
     .factory('CarList', ['$http', function($http) {
         return {
-            getCars: function() {
+            getCars: function(params) {
                 var list = "";
-                var req = {
-                    url: '/api/cars/all',
-                    method: "GET"
-                };
-                return $http(req).then(function(res) {
+                return $http.post('/api/search', params).then(function(res) {
                     if (res.data === undefined) {
                         list = null;
                     } else {
@@ -15,22 +11,6 @@ angular.module('App')
                     }
                     return list;
                 });
-            },
-            archiveCar: function(id){
-                var req = {
-                    url: '/api/cars/archive/'+id,
-                    method: "PUT"
-                };
-                console.log("archiving car ", id);
-                return $http(req);
-            },
-            updateList: function(){
-                var req = {
-                    url:'/api/updateList',
-                    method: "GET"
-                };
-                console.log('updating list');
-                return $http(req);
             }
         }
     }])
