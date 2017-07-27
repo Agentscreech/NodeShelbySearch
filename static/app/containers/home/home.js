@@ -18,12 +18,9 @@ function HomeCompCtrl($scope, $window, CarList, $sce) {
     homeComp.trim = {};
     homeComp.color = {};
 
-    // homeComp.update = function() {
-    //     CarList.updateList().then(function() {
-    //         console.log('trying to refresh');
-    //         $window.location.reload();
-    //     });
-    // };
+    // $scope.$watch('homeComp.cars',function(newVal, oldVal){
+    //     console.log("homeComp.cars changed.  It's ", newVal)
+    // });
     //get a list of the cars
     homeComp.searchCars = function() {
         var params = {
@@ -35,22 +32,22 @@ function HomeCompCtrl($scope, $window, CarList, $sce) {
             colors : homeComp.color
         }
         console.log("searching with these ", params);
-        CarList.getCars(params)
-        // .then(function(res) {
-        //     //rank cars by price and distance
-        //     // homeComp.cars = rankCars(res.cars);
-        //     homeComp.cars.forEach(function(car) {
-        //         car.pdf = $sce.trustAsResourceUrl("http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=" + car.vin);
-        //         car.showPdf = false;
-        //     });
-        // });
+        CarList.getCars(params).then(function(res) {
+            //rank cars by price and distance
+            console.log("This is the response",res);
+            homeComp.cars = rankCars(res);
+            homeComp.cars.forEach(function(car) {
+                car.pdf = $sce.trustAsResourceUrl("http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=" + car.vin);
+                car.showPdf = false;
+            });
+        });
     }
 }
 //sorting helper
 function rankCars(cars) {
-    cars = cars.filter(function(car) {
-        return car.archived == false;
-    });
+    // cars = cars.filter(function(car) {
+    //     return car.archived == false;
+    // });
     //Add the distance @ $1/mile to the price then sort it.  That would weight the distance more since you'll have pay to travel to the location.
     var carsByPrice = cars.slice(0).sort(function(a, b) {
         var arr1 = a.price.split("$"),

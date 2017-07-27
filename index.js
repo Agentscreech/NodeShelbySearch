@@ -18,20 +18,20 @@ app.use(bodyParser.urlencoded({
 app.use(express.static(path.join(__dirname + '/static/')));
 
 app.post('/api/search', function(req, res) {
-    console.log("request received with", req.body);
+    // console.log("request received with", req.body);
     //need to grab the parameters from the search and build a query
     //pass that query to the function to set that as the url
     var options = req.body;
     options.color = [];
     options.trim = [];
     //change each color to array index
-    for (color in options.colors){
+    for (color in options.colors) {
         options.color.push(color.toString());
     }
-    if (options.color.length > 1){
+    if (options.color.length > 1) {
         //replace the array with the properly formatted query string
         temp = options.color[0].toUpperCase();
-        for (var i = 1; i < options.color.length; i++){
+        for (var i = 1; i < options.color.length; i++) {
             temp += "%2C";
             temp += options.color[i].toUpperCase();
         }
@@ -41,11 +41,11 @@ app.post('/api/search', function(req, res) {
         options.color = options.color[0].toUpperCase();
     }
     // change trims to an array, then replace it with the proper format for query
-    for (trim in options.trims){
+    for (trim in options.trims) {
         options.trim.push(trim)
     }
     temp = "MUST%7C"
-    if (options.trim.length > 1){
+    if (options.trim.length > 1) {
         temp += options.trim[0].split(" ").join("%20");
         temp += "%2CMUST%7C"
         temp += options.trim[1].split(" ").join("%20");
@@ -53,12 +53,16 @@ app.post('/api/search', function(req, res) {
         temp += options.trim[0].split(" ").join("%20");
     }
     options.trim = temp;
-    console.log(options)
-    findCars(options).then(function(cars) {
-        console.log("find cars is done, sending ", cars);
-        res.send({cars: cars});
-    });
+    // console.log(options)
+    findCars(options).then(function(cars){
+        console.log('findCars is done')
+        parseCars(cars, options).then(function(output){
+            console.log("$$$$$$parseCars DONE$$$$$, sending ", output);
+            res.send(output)
+        })
+    })
 });
+
 
 // app.put('/api/cars/archive/:id', function(req, res) {
 //     db.car.findOne({
@@ -101,9 +105,9 @@ var server = app.listen((process.env.PORT || 1350), function() {
 //helper functions
 
 function findCars(params) {
-    return new Promise(function(resolve, reject){
+    return new Promise(function(resolve,reject){
         var OPTIONS = {
-            url: "http://www.autotrader.com/cars-for-sale//Ford/Mustang/?zip="+params.zipcode+"&extColorsSimple="+params.color+"&startYear="+params.minYear+"&numRecords=100&endYear="+params.maxYear+"&modelCodeList=MUST&makeCodeList=FORD&sortBy=distanceASC&firstRecord=0&searchRadius="+params.radius+"&trimCodeList="+params.trim,
+            url: "http://www.autotrader.com/cars-for-sale//Ford/Mustang/?zip=" + params.zipcode + "&extColorsSimple=" + params.color + "&startYear=" + params.minYear + "&numRecords=100&endYear=" + params.maxYear + "&modelCodeList=MUST&makeCodeList=FORD&sortBy=distanceASC&firstRecord=0&searchRadius=" + params.radius + "&trimCodeList=" + params.trim,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
             }
@@ -128,33 +132,34 @@ function findCars(params) {
             };
             console.log("parsed ", carsScraped.length, " cars")
             return carsScraped;
-        }).then(function(cars){
-            cars.forEach(function(singleCar){
-                url = singleCar[0];
-                distance = singleCar[1];
-                getCarDetails(OPTIONS, url, distance).then(function(carDetails){
-                    carsListed.push(carDetails)
-                    console.log("getDetails should be done and we have details", carsListed);
-                    // resolve();
-
-                }).then(resolve())
-            })
-        }).catch(function(error){
-            console.log("something went wrong", error.message);
-        })
-
+        }).then(function(cars) {
+            console.log("!!!!!!!!!!!!!resolving findCars!!!!!!!!!!!!")
+            resolve(cars)
+        }).catch(function(error) {
+            console.log("something went wrong in the findCars function", error.message);
+        });
     })
+
 }
 
-function parseCars(cars){
-    return new Promise(function(resolve,reject){
-
-    })
+async function parseCars(cars, OPTIONS) {
+    carsListed = [];
+    for(var i = 0; i < cars.length; i++){
+        url = cars[i][0];
+        distance = cars[i][1];
+        var newCar = await getCarDetails(OPTIONS, url, distance)
+        carsListed.push(newCar)
+    }
+    console.log("######resolving parseCars######")
+    return carsListed
 }
 
 function getCarDetails(OPTIONS, url, dist) {
-    return new Promise(function(resolve,reject){
+    return new Promise(function(resolve, reject) {
         OPTIONS.url = url;
+        OPTIONS.headers =  {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
+        }
         request(OPTIONS).then(function(body) {
             if (body) {
                 var $ = cheerio.load(body);
@@ -172,9 +177,11 @@ function getCarDetails(OPTIONS, url, dist) {
 
                 }
             }
-            if (car)
+            if (car) {
+                console.log("%%%%%resolving carDeatils%%%%%")
                 resolve(car);
-            });
+            }
+        });
     });
 }
 
@@ -182,31 +189,31 @@ function getCarDetails(OPTIONS, url, dist) {
 
 
 function timeStamp() {
-// Create a date object with the current time
-  var now = new Date();
+    // Create a date object with the current time
+    var now = new Date();
 
-// Create an array with the current month, day and time
-  var date = [ now.getMonth() + 1, now.getDate(), now.getFullYear() ];
+    // Create an array with the current month, day and time
+    var date = [now.getMonth() + 1, now.getDate(), now.getFullYear()];
 
-// Create an array with the current hour, minute and second
-  var time = [ now.getHours(), now.getMinutes(), now.getSeconds() ];
+    // Create an array with the current hour, minute and second
+    var time = [now.getHours(), now.getMinutes(), now.getSeconds()];
 
-// Determine AM or PM suffix based on the hour
-  var suffix = ( time[0] < 12 ) ? "AM" : "PM";
+    // Determine AM or PM suffix based on the hour
+    var suffix = (time[0] < 12) ? "AM" : "PM";
 
-// Convert hour from military time
-  time[0] = ( time[0] < 12 ) ? time[0] : time[0] - 12;
+    // Convert hour from military time
+    time[0] = (time[0] < 12) ? time[0] : time[0] - 12;
 
-// If hour is 0, set it to 12
-  time[0] = time[0] || 12;
+    // If hour is 0, set it to 12
+    time[0] = time[0] || 12;
 
-// If seconds and minutes are less than 10, add a zero
-  for ( var i = 1; i < 3; i++ ) {
-    if ( time[i] < 10 ) {
-      time[i] = "0" + time[i];
+    // If seconds and minutes are less than 10, add a zero
+    for (var i = 1; i < 3; i++) {
+        if (time[i] < 10) {
+            time[i] = "0" + time[i];
+        }
     }
-  }
 
-// Return the formatted string
-  return date.join("/") + " " + time.join(":") + " " + suffix;
+    // Return the formatted string
+    return date.join("/") + " " + time.join(":") + " " + suffix;
 }
