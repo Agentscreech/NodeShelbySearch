@@ -26,19 +26,24 @@ app.post('/api/search', function(req, res) {
     options.trim = [];
     //change each color to array index
     for (color in options.colors) {
-        options.color.push(color.toString());
-    }
-    if (options.color.length > 1) {
-        //replace the array with the properly formatted query string
-        temp = options.color[0].toUpperCase();
-        for (var i = 1; i < options.color.length; i++) {
-            temp += "%2C";
-            temp += options.color[i].toUpperCase();
+        console.log(options.colors[color])
+        if(options.colors[color]){
+            options.color.push(color.toString());
         }
-        options.color = temp;
+    }
+    if (options.color.length !== 0){
+        if (options.color.length > 1) {
+            //replace the array with the properly formatted query string
+            temp = options.color[0].toUpperCase();
+            for (var i = 1; i < options.color.length; i++) {
+                temp += "%2C";
+                temp += options.color[i].toUpperCase();
+            }
+            options.color = temp;
 
-    } else {
-        options.color = options.color[0].toUpperCase();
+        } else {
+            options.color = options.color[0].toUpperCase();
+        }
     }
     // change trims to an array, then replace it with the proper format for query
     for (trim in options.trims) {
@@ -53,43 +58,16 @@ app.post('/api/search', function(req, res) {
         temp += options.trim[0].split(" ").join("%20");
     }
     options.trim = temp;
-    // console.log(options)
+    console.log(options)
     findCars(options).then(function(cars){
         console.log('findCars is done')
         parseCars(cars, options).then(function(output){
-            console.log("$$$$$$parseCars DONE$$$$$, sending ", output);
+            console.log("$$$$$$parseCars DONE$$$$$");
             res.send(output)
         })
     })
 });
 
-
-// app.put('/api/cars/archive/:id', function(req, res) {
-//     db.car.findOne({
-//         where: {
-//             id: req.params.id
-//         }
-//     }).then(function(car) {
-//         car.update({
-//             archived: true
-//         });
-//     }).then(function(car) {
-//         res.sendStatus(200);
-//     });
-// });
-
-// app.get('/api/updateList', function(req, res) {
-//         if (updaterInterval){
-//             console.log("clearing updater");
-//             clearInterval(updaterInterval)
-//             updaterInterval = null;
-//         } else {
-//             console.log("starting updater");
-//             updaterInterval = setInterval(updateList, 60 * 60 * 1000);
-//             updateList();
-//         }
-//         res.sendStatus(200)
-// });
 
 //root route and server port
 app.get('/*', function(req, res) {
