@@ -30,7 +30,10 @@
             <button type="submit" class="btn btn-primary">Search</button>
         </div>
     </form>
-
+    <div ng-if="homeComp.processing" class="text-center">
+        <h1>Processing, please wait</h1>
+    </div>
+    
     <div ng-repeat="car in homeComp.cars">
         <div ng-if="car">
             <div class="row well">

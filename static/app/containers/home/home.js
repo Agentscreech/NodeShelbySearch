@@ -17,12 +17,13 @@ function HomeCompCtrl($scope, $window, CarList, $sce) {
     homeComp.maxYear = "";
     homeComp.trim = {};
     homeComp.color = {};
-
+    homeComp.processing = false;
     // $scope.$watch('homeComp.cars',function(newVal, oldVal){
     //     console.log("homeComp.cars changed.  It's ", newVal)
     // });
     //get a list of the cars
     homeComp.searchCars = function() {
+        homeComp.processing = true;
         var params = {
             zipcode : homeComp.zipcode,
             radius : homeComp.radius,
@@ -31,15 +32,14 @@ function HomeCompCtrl($scope, $window, CarList, $sce) {
             trims : homeComp.trim,
             colors : homeComp.color
         }
-        console.log("searching with these ", params);
         CarList.getCars(params).then(function(res) {
             //rank cars by price and distance
-            console.log("This is the response",res);
             homeComp.cars = rankCars(res);
             homeComp.cars.forEach(function(car) {
                 car.pdf = $sce.trustAsResourceUrl("http://www.windowsticker.forddirect.com/windowsticker.pdf?vin=" + car.vin);
                 car.showPdf = false;
             });
+            homeComp.processing = false
         });
     }
 }
